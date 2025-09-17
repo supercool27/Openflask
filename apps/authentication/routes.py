@@ -14,7 +14,8 @@ from apps import db, login_manager
 from apps.authentication import blueprint
 from apps.authentication.forms import LoginForm, CreateAccountForm
 from apps.authentication.models import Users
-
+from flask import jsonify
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from apps.authentication.util import verify_pass
 
 
@@ -53,6 +54,27 @@ def login():
                                form=login_form)
     return redirect(url_for('home_blueprint.index'))
 
+@blueprint.route('/api/login', methods=['POST'])
+def api_login():
+    data = request.get_json()
+    username = data.get("username")
+    password = data.get("password")
+
+    # Locate user
+    user = Users.query.filter_by(username=username).first()
+
+    # Verify password
+    if user and verify_pass(password, user.password):
+        access_token = create_access_token(identity=user.id)
+        return jsonify(access_token=access_token), 200
+    else:
+        return jsonify(msg="Bad username or password"), 401
+
+@blueprint.route('/api/protected', methods=['GET'])
+@jwt_required()
+def protected():
+    current_user_id = get_jwt_identity()
+    return jsonify(logged_in_as=current_user_id), 200
 
 @blueprint.route('/register', methods=['GET', 'POST'])
 def register():

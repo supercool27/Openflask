@@ -19,9 +19,14 @@ def register_extensions(app):
 
 
 def register_blueprints(app):
-    for module_name in ('authentication', 'home'):
+    for module_name in ('authentication', 'home', 'health','auth'): 
         module = import_module('apps.{}.routes'.format(module_name))
-        app.register_blueprint(module.blueprint)
+        if hasattr(module, 'blueprint'):
+            app.register_blueprint(module.blueprint)
+        elif hasattr(module, 'health_bp'):
+            app.register_blueprint(module.health_bp)
+        elif hasattr(module, 'auth_bp'):   
+            app.register_blueprint(module.auth_bp)
 
 
 def configure_database(app):
@@ -38,6 +43,7 @@ def configure_database(app):
 def create_app(config):
     app = Flask(__name__)
     app.config.from_object(config)
+    app.config["JWT_SECRET_KEY"] = "super-secret-key" 
     register_extensions(app)
     register_blueprints(app)
     configure_database(app)
