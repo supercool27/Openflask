@@ -7,15 +7,17 @@ from flask import Flask
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
 from importlib import import_module
-
+from flask_jwt_extended import JWTManager   # 👈 add this
 
 db = SQLAlchemy()
 login_manager = LoginManager()
+jwt = JWTManager()  # 👈 add this
 
 
 def register_extensions(app):
     db.init_app(app)
     login_manager.init_app(app)
+    jwt.init_app(app)   # 👈 initialize JWT with app
 
 
 def register_blueprints(app):
@@ -43,7 +45,10 @@ def configure_database(app):
 def create_app(config):
     app = Flask(__name__)
     app.config.from_object(config)
+    
+    # 👇 JWT secret key (keep this in environment for production)
     app.config["JWT_SECRET_KEY"] = "super-secret-key" 
+    
     register_extensions(app)
     register_blueprints(app)
     configure_database(app)
