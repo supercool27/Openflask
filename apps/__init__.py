@@ -10,11 +10,15 @@ from flask_jwt_extended import JWTManager
 from flask_migrate import Migrate
 from flask_cors import CORS
 from importlib import import_module
+from flask import template_rendered
+import blinker
 
 db = SQLAlchemy()
 login_manager = LoginManager()
 jwt = JWTManager()
 migrate = Migrate()
+import logging
+logging.basicConfig(level=logging.INFO)
 
 
 def register_extensions(app):
@@ -57,12 +61,28 @@ def create_app(config):
     """Flask application factory"""
     app = Flask(__name__)
     app.config.from_object(config)
-
+    
     # 👇 JWT secret key (move to env variable in production)
     app.config["JWT_SECRET_KEY"] = "super-secret-key"
 
+    # Register extensions and blueprints
     register_extensions(app)
     register_blueprints(app)
     configure_database(app)
+
+    try:
+        from flask import template_rendered
+        import blinker  # ensure blinker is available
+
+        def log_template(sender, template, context, **extra):
+            try:
+                logging.info("👉 Template rendered: %s", template.name)
+            except Exception as e:
+                logging.error("Error in log_template: %s", e)
+
+        template_rendered.connect(log_template, app)
+
+    except ImportError:
+        logging.warning("Blinker not installed — template_rendered signals will not work")
 
     return app
