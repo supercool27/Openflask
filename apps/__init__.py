@@ -6,32 +6,43 @@ Copyright (c) 2019 - present AppSeed.us
 from flask import Flask
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
+from flask_jwt_extended import JWTManager
+from flask_migrate import Migrate
+from flask_cors import CORS
 from importlib import import_module
-from flask_jwt_extended import JWTManager   # 👈 add this
 
 db = SQLAlchemy()
 login_manager = LoginManager()
-jwt = JWTManager()  # 👈 add this
+jwt = JWTManager()
+migrate = Migrate()
 
 
 def register_extensions(app):
+    """Initialize Flask extensions"""
     db.init_app(app)
     login_manager.init_app(app)
-    jwt.init_app(app)   # 👈 initialize JWT with app
+    jwt.init_app(app)
+    migrate.init_app(app, db)
+    CORS(app)
 
 
 def register_blueprints(app):
-    for module_name in ('authentication', 'home', 'health','auth'): 
-        module = import_module('apps.{}.routes'.format(module_name))
+    """Register all blueprints dynamically"""
+    for module_name in ('authentication', 'home', 'health', 'auth', 'quiz'):  
+        module = import_module(f'apps.{module_name}.routes')
+        
         if hasattr(module, 'blueprint'):
             app.register_blueprint(module.blueprint)
         elif hasattr(module, 'health_bp'):
             app.register_blueprint(module.health_bp)
-        elif hasattr(module, 'auth_bp'):   
+        elif hasattr(module, 'auth_bp'):
             app.register_blueprint(module.auth_bp)
+        elif hasattr(module, 'quiz_bp'):   # 👈 yahan se aapke quiz_bp ko register karega
+            app.register_blueprint(module.quiz_bp)
 
 
 def configure_database(app):
+    """Database setup hooks"""
 
     @app.before_first_request
     def initialize_database():
@@ -43,13 +54,15 @@ def configure_database(app):
 
 
 def create_app(config):
+    """Flask application factory"""
     app = Flask(__name__)
     app.config.from_object(config)
-    
-    # 👇 JWT secret key (keep this in environment for production)
-    app.config["JWT_SECRET_KEY"] = "super-secret-key" 
-    
+
+    # 👇 JWT secret key (move to env variable in production)
+    app.config["JWT_SECRET_KEY"] = "super-secret-key"
+
     register_extensions(app)
     register_blueprints(app)
     configure_database(app)
+
     return app
