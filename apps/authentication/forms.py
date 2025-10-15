@@ -7,7 +7,7 @@ from flask_wtf import FlaskForm
 from wtforms import TextField, PasswordField
 from wtforms.validators import Email, DataRequired
 
-# login and registration
+# login and registration Checking.
 
 
 class LoginForm(FlaskForm):
